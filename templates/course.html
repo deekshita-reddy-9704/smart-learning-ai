@@ -1,0 +1,485 @@
+{% extends "base.html" %}
+{% block title %}{{ course.title }} — MicroLearn AI{% endblock %}
+
+{% block head %}
+<!-- D3.js for visual tree -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+<!-- Marked.js for markdown rendering -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.6/marked.min.js"></script>
+<!-- jsPDF for download -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+{% endblock %}
+
+{% block content %}
+
+<!-- Hidden course data for JS -->
+<script>
+  const COURSE_ID    = {{ course.id }};
+  const COURSE_TITLE = {{ course.title | tojson }};
+</script>
+
+<!-- ══ Course Hero ════════════════════════════════════════════════════════════ -->
+<div class="course-hero">
+  <div class="container">
+    <a href="/" class="back-link"><i class="fa fa-arrow-left"></i> All Courses</a>
+    <div class="course-hero-inner">
+      <div class="course-hero-text">
+        <div class="course-meta-row">
+          <span class="badge badge-category" id="hero-category">{{ course.category or 'General' }}</span>
+          <span class="badge badge-difficulty" id="hero-difficulty">{{ course.difficulty or 'beginner' }}</span>
+        </div>
+        <h1 class="course-hero-title">{{ course.title }}</h1>
+        <p class="course-hero-desc">{{ course.description or '' }}</p>
+      </div>
+
+      <!-- Quick actions -->
+      <div class="course-actions">
+        <button class="btn btn-primary btn-lg" id="generate-modules-btn" onclick="generateModules()">
+          <i class="fa fa-magic"></i> Generate Learning Plan
+        </button>
+        <p class="action-hint" id="action-hint">Click to let AI create your personalised learning modules</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ Main layout: sidebar + content ════════════════════════════════════════ -->
+<div class="course-layout container">
+
+  <!-- ── Left sidebar: module list ───────────────────────────────────────── -->
+  <aside class="module-sidebar" id="module-sidebar">
+    <div class="sidebar-header">
+      <h3 class="sidebar-title"><i class="fa fa-list"></i> Modules</h3>
+      <button class="btn-icon" onclick="generateModules()" title="Regenerate modules">
+        <i class="fa fa-rotate-right"></i>
+      </button>
+    </div>
+
+    <!-- Module list (populated by JS) -->
+    <div id="module-list" class="module-list">
+      <div class="sidebar-placeholder">
+        <i class="fa fa-wand-magic-sparkles"></i>
+        <p>Generate learning plan to see modules</p>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ── Right: feature tabs + content ───────────────────────────────────── -->
+  <div class="course-content">
+
+    <!-- Tab bar -->
+    <div class="tab-bar" role="tablist">
+      <button class="tab active" data-tab="reading"   onclick="switchTab('reading')"   role="tab">
+        <i class="fa fa-book-open"></i><span> Reading</span>
+      </button>
+      <button class="tab" data-tab="visual"    onclick="switchTab('visual')"    role="tab">
+        <i class="fa fa-diagram-project"></i><span> Visual</span>
+      </button>
+      <button class="tab" data-tab="audio"     onclick="switchTab('audio')"     role="tab">
+        <i class="fa fa-headphones"></i><span> Audio</span>
+      </button>
+      <button class="tab" data-tab="writing"   onclick="switchTab('writing')"   role="tab">
+        <i class="fa fa-pen-to-square"></i><span> Writing</span>
+      </button>
+      <button class="tab" data-tab="flashcard" onclick="switchTab('flashcard')" role="tab">
+        <i class="fa fa-clone"></i><span> Flashcards</span>
+      </button>
+      <button class="tab" data-tab="quiz"      onclick="switchTab('quiz')"      role="tab">
+        <i class="fa fa-circle-question"></i><span> Quiz</span>
+      </button>
+      <button class="tab" data-tab="kinesthetic" onclick="switchTab('kinesthetic')" role="tab">
+        <i class="fa fa-dumbbell"></i><span> Practice</span>
+      </button>
+    </div>
+
+    <!-- ════════════════════════════════════════════════════════════════════ -->
+    <!-- TAB: READING                                                        -->
+    <!-- ════════════════════════════════════════════════════════════════════ -->
+    <div class="tab-panel active" id="tab-reading">
+      <div class="panel-toolbar">
+        <h2 class="panel-title"><i class="fa fa-book-open"></i> AI-Generated Notes</h2>
+        <div class="toolbar-actions">
+          <button class="btn btn-outline btn-sm" onclick="generateNotes()">
+            <i class="fa fa-rotate-right"></i> Regenerate
+          </button>
+          <button class="btn btn-outline btn-sm" onclick="downloadNotesPDF()" id="download-pdf-btn" disabled>
+            <i class="fa fa-download"></i> Download PDF
+          </button>
+        </div>
+      </div>
+
+      <div id="notes-container" class="notes-container">
+        <div class="panel-empty">
+          <i class="fa fa-book-open empty-icon-lg"></i>
+          <h3>No notes yet</h3>
+          <p>Select a module and click <strong>Regenerate</strong>, or generate your learning plan first.</p>
+          <button class="btn btn-primary" onclick="generateNotes()">
+            <i class="fa fa-magic"></i> Generate Notes
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ════════════════════════════════════════════════════════════════════ -->
+    <!-- TAB: VISUAL                                                         -->
+    <!-- ════════════════════════════════════════════════════════════════════ -->
+    <div class="tab-panel" id="tab-visual">
+      <div class="panel-toolbar">
+        <h2 class="panel-title"><i class="fa fa-diagram-project"></i> Topic Mind Map</h2>
+        <div class="toolbar-actions">
+          <button class="btn btn-outline btn-sm" onclick="generateVisual()">
+            <i class="fa fa-rotate-right"></i> Regenerate
+          </button>
+          <button class="btn btn-outline btn-sm" onclick="resetZoom()">
+            <i class="fa fa-compress"></i> Reset Zoom
+          </button>
+        </div>
+      </div>
+
+      <div id="visual-container" class="visual-container">
+        <div class="panel-empty">
+          <i class="fa fa-diagram-project empty-icon-lg"></i>
+          <h3>No visual map yet</h3>
+          <p>Generate your learning plan first, then click <strong>Regenerate</strong> to build the mind map.</p>
+          <button class="btn btn-primary" onclick="generateVisual()">
+            <i class="fa fa-magic"></i> Build Mind Map
+          </button>
+        </div>
+      </div>
+
+      <!-- D3 SVG injected here by JS -->
+      <svg id="visual-svg" class="hidden"></svg>
+      <p class="visual-hint hidden" id="visual-hint">
+        <i class="fa fa-info-circle"></i> Scroll to zoom · Drag to pan · Click node to expand
+      </p>
+    </div>
+
+    <!-- ════════════════════════════════════════════════════════════════════ -->
+    <!-- TAB: AUDIO                                                          -->
+    <!-- ════════════════════════════════════════════════════════════════════ -->
+    <div class="tab-panel" id="tab-audio">
+      <div class="panel-toolbar">
+        <h2 class="panel-title"><i class="fa fa-headphones"></i> Audio Lesson</h2>
+        <button class="btn btn-outline btn-sm" onclick="loadAudio()">
+          <i class="fa fa-rotate-right"></i> Reload
+        </button>
+      </div>
+
+      <!-- Podcast-style player -->
+      <div class="audio-player-card">
+        <div class="podcast-art">
+          <i class="fa fa-headphones-simple"></i>
+        </div>
+        <div class="podcast-info">
+          <h3 class="podcast-title" id="podcast-title">{{ course.title }}</h3>
+          <p class="podcast-sub" id="podcast-sub">AI-generated audio lesson</p>
+        </div>
+
+        <!-- Waveform animation (decorative) -->
+        <div class="waveform" id="waveform">
+          <span></span><span></span><span></span><span></span><span></span>
+          <span></span><span></span><span></span><span></span><span></span>
+        </div>
+
+        <!-- Controls -->
+        <div class="audio-controls">
+          <button class="audio-btn" onclick="skipAudio(-10)" title="Back 10s">
+            <i class="fa fa-rotate-left"></i> 10s
+          </button>
+          <button class="audio-btn play-btn" id="play-btn" onclick="toggleAudio()">
+            <i class="fa fa-play" id="play-icon"></i>
+          </button>
+          <button class="audio-btn" onclick="skipAudio(10)" title="Forward 10s">
+            10s <i class="fa fa-rotate-right"></i>
+          </button>
+        </div>
+
+        <!-- Progress bar -->
+        <div class="audio-progress-wrap">
+          <span class="audio-time" id="audio-current">0:00</span>
+          <input type="range" id="audio-progress" class="audio-progress" value="0" min="0" max="100" step="0.1"
+                 oninput="seekAudio(this.value)" />
+          <span class="audio-time" id="audio-duration">0:00</span>
+        </div>
+
+        <!-- Speed control -->
+        <div class="speed-row">
+          <span class="speed-label">Speed:</span>
+          <button class="speed-btn active" onclick="setSpeed(0.75, this)">0.75×</button>
+          <button class="speed-btn" onclick="setSpeed(1, this)">1×</button>
+          <button class="speed-btn" onclick="setSpeed(1.25, this)">1.25×</button>
+          <button class="speed-btn" onclick="setSpeed(1.5, this)">1.5×</button>
+        </div>
+
+        <!-- Hidden audio element -->
+        <audio id="audio-el" style="display:none"></audio>
+
+        <!-- TTS generate button -->
+        <div class="tts-actions">
+          <button class="btn btn-primary" id="tts-btn" onclick="generateAudio()">
+            <i class="fa fa-magic"></i> Generate Audio Lesson
+          </button>
+          <p class="tts-note">AI reads your generated notes aloud as a podcast-style lesson.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ════════════════════════════════════════════════════════════════════ -->
+    <!-- TAB: WRITING                                                        -->
+    <!-- ════════════════════════════════════════════════════════════════════ -->
+    <div class="tab-panel" id="tab-writing">
+      <div class="panel-toolbar">
+        <h2 class="panel-title"><i class="fa fa-pen-to-square"></i> Writing Mode</h2>
+        <div class="toolbar-actions">
+          <button class="btn btn-outline btn-sm" onclick="generateWritingPrompt()">
+            <i class="fa fa-rotate-right"></i> New Prompt
+          </button>
+          <button class="btn btn-outline btn-sm" onclick="clearWriting()">
+            <i class="fa fa-eraser"></i> Clear
+          </button>
+        </div>
+      </div>
+
+      <div class="writing-container">
+        <!-- Prompt header -->
+        <div class="writing-prompt-box" id="writing-prompt-box">
+          <i class="fa fa-lightbulb prompt-icon"></i>
+          <p id="writing-prompt-text">Generate a writing prompt to begin…</p>
+        </div>
+
+        <!-- Writing area with ghost text -->
+        <div class="writing-area-wrap">
+          <!-- Ghost text layer (AI generated, grey) -->
+          <div class="ghost-text-layer" id="ghost-layer" aria-hidden="true"></div>
+          <!-- User text area (transparent bg, sits on top) -->
+          <textarea
+            id="writing-area"
+            class="writing-textarea"
+            placeholder="Start typing here… the grey text is your guide."
+            oninput="syncGhost(this)"
+            onscroll="syncScroll(this)"
+            spellcheck="true"
+          ></textarea>
+        </div>
+
+        <!-- Word count -->
+        <div class="writing-meta">
+          <span id="word-count">0 words</span>
+          <button class="btn btn-ghost btn-sm" onclick="generateWritingPrompt()">
+            <i class="fa fa-magic"></i> Generate AI Prompt
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ════════════════════════════════════════════════════════════════════ -->
+    <!-- TAB: FLASHCARDS                                                     -->
+    <!-- ════════════════════════════════════════════════════════════════════ -->
+    <div class="tab-panel" id="tab-flashcard">
+      <div class="panel-toolbar">
+        <h2 class="panel-title"><i class="fa fa-clone"></i> Flashcards</h2>
+        <div class="toolbar-actions">
+          <span class="card-counter" id="card-counter"></span>
+          <button class="btn btn-outline btn-sm" onclick="generateFlashcards()">
+            <i class="fa fa-rotate-right"></i> New Set
+          </button>
+        </div>
+      </div>
+
+      <!-- Flashcard deck -->
+      <div class="flashcard-area">
+        <!-- The card itself -->
+        <div class="flashcard-scene" id="flashcard-scene">
+          <div class="flashcard" id="flashcard" onclick="flipCard()">
+            <div class="flashcard-face flashcard-front">
+              <div class="card-label">Question</div>
+              <p id="card-question" class="card-text">Generate flashcards to begin!</p>
+              <div class="card-tap-hint"><i class="fa fa-hand-pointer"></i> Tap to reveal answer</div>
+            </div>
+            <div class="flashcard-face flashcard-back">
+              <div class="card-label">Answer</div>
+              <p id="card-answer" class="card-text"></p>
+              <div class="card-tap-hint"><i class="fa fa-hand-pointer"></i> Tap to see question</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Navigation controls -->
+        <div class="flashcard-nav">
+          <button class="btn btn-outline" onclick="prevCard()" id="prev-card-btn" disabled>
+            <i class="fa fa-chevron-left"></i> Prev
+          </button>
+          <div class="card-dots" id="card-dots"></div>
+          <button class="btn btn-outline" onclick="nextCard()" id="next-card-btn" disabled>
+            Next <i class="fa fa-chevron-right"></i>
+          </button>
+        </div>
+
+        <!-- Empty state -->
+        <div id="fc-empty" class="panel-empty">
+          <i class="fa fa-clone empty-icon-lg"></i>
+          <h3>No flashcards yet</h3>
+          <p>Generate a learning plan first, then click <strong>New Set</strong>.</p>
+          <button class="btn btn-primary" onclick="generateFlashcards()">
+            <i class="fa fa-magic"></i> Generate Flashcards
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ════════════════════════════════════════════════════════════════════ -->
+    <!-- TAB: QUIZ                                                           -->
+    <!-- ════════════════════════════════════════════════════════════════════ -->
+    <div class="tab-panel" id="tab-quiz">
+      <div class="panel-toolbar">
+        <h2 class="panel-title"><i class="fa fa-circle-question"></i> Adaptive Quiz</h2>
+      </div>
+
+      <!-- ── Quiz setup screen ──────────────────────────────────────────── -->
+      <div id="quiz-setup" class="quiz-setup">
+        <div class="quiz-type-cards">
+
+          <div class="quiz-type-card" id="type-card-objective">
+            <div class="quiz-type-icon">✏️</div>
+            <h3>Fill in the Blanks</h3>
+            <p>Complete the missing word in each statement. Tests recall and precision.</p>
+            <div class="quiz-type-check hidden"><i class="fa fa-check-circle"></i></div>
+          </div>
+
+          <div class="quiz-type-card" id="type-card-subjective">
+            <div class="quiz-type-icon">📝</div>
+            <h3>Short Answer</h3>
+            <p>Write 2–4 sentence answers. AI evaluates depth and accuracy with explanations.</p>
+            <div class="quiz-type-check hidden"><i class="fa fa-check-circle"></i></div>
+          </div>
+        </div>
+
+        <div class="quiz-options-row">
+          <label class="form-label">Questions:
+            <select id="quiz-count" class="form-input form-input-sm">
+              <option value="3">3</option>
+              <option value="5" selected>5</option>
+              <option value="7">7</option>
+              <option value="10">10</option>
+            </select>
+          </label>
+        </div>
+
+        <div class="quiz-start-row">
+          <button class="btn btn-primary btn-lg" id="start-quiz-btn" onclick="startQuiz()">
+            <i class="fa fa-play"></i> Start Quiz
+          </button>
+          <p class="quiz-note">Every quiz uses fresh AI-generated questions — no repetition!</p>
+        </div>
+      </div>
+
+      <!-- ── Quiz in progress ───────────────────────────────────────────── -->
+      <div id="quiz-active" class="hidden">
+        <!-- Progress bar -->
+        <div class="quiz-progress-wrap">
+          <div class="quiz-progress-bar" id="quiz-progress-bar"></div>
+        </div>
+        <p class="quiz-progress-label">
+          Question <span id="q-current">1</span> of <span id="q-total">5</span>
+        </p>
+
+        <!-- Question card -->
+        <div class="question-card" id="question-card">
+          <p class="question-type-label" id="q-type-label"></p>
+          <h3 class="question-text" id="question-text"></h3>
+          <p class="question-hint hidden" id="question-hint"></p>
+
+          <!-- Answer input (objective) -->
+          <input type="text" id="obj-answer" class="answer-input hidden"
+                 placeholder="Type your answer here…"
+                 onkeydown="if(event.key==='Enter') nextQuestion()" />
+
+          <!-- Answer input (subjective) -->
+          <textarea id="subj-answer" class="answer-textarea hidden"
+                    placeholder="Write your answer here (2-4 sentences)…"
+                    rows="5"></textarea>
+
+          <div class="question-nav">
+            <button class="btn btn-ghost btn-sm" onclick="toggleHint()" id="hint-btn">
+              <i class="fa fa-lightbulb"></i> Show Hint
+            </button>
+            <button class="btn btn-primary" onclick="nextQuestion()" id="next-q-btn">
+              Next <i class="fa fa-arrow-right"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Quiz results ───────────────────────────────────────────────── -->
+      <div id="quiz-results" class="hidden">
+        <!-- Score summary -->
+        <div class="score-summary">
+          <div class="score-circle" id="score-circle">
+            <span class="score-pct" id="score-pct">0%</span>
+            <span class="score-grade" id="score-grade">F</span>
+          </div>
+          <div class="score-info">
+            <h2 class="score-title" id="score-title">Quiz Complete!</h2>
+            <p class="score-feedback" id="score-feedback"></p>
+            <div class="score-stats">
+              <span class="stat"><i class="fa fa-check text-success"></i> <span id="stat-correct">0</span> correct</span>
+              <span class="stat"><i class="fa fa-xmark text-danger"></i> <span id="stat-wrong">0</span> wrong</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Per-question review -->
+        <div id="results-breakdown" class="results-breakdown"></div>
+
+        <!-- Retry -->
+        <div class="results-actions">
+          <button class="btn btn-outline" onclick="resetQuiz()">
+            <i class="fa fa-rotate-right"></i> Try Again
+          </button>
+          <button class="btn btn-primary" onclick="startQuiz()">
+            <i class="fa fa-shuffle"></i> New Questions
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ════════════════════════════════════════════════════════════════════ -->
+    <!-- TAB: KINESTHETIC (PRACTICE)                                         -->
+    <!-- ════════════════════════════════════════════════════════════════════ -->
+    <div class="tab-panel" id="tab-kinesthetic">
+      <div class="panel-toolbar">
+        <h2 class="panel-title"><i class="fa fa-dumbbell"></i> Practical Exercises</h2>
+        <button class="btn btn-outline btn-sm" onclick="generateExercises()">
+          <i class="fa fa-rotate-right"></i> New Exercises
+        </button>
+      </div>
+
+      <div id="exercises-container" class="exercises-container">
+        <div class="panel-empty">
+          <i class="fa fa-dumbbell empty-icon-lg"></i>
+          <h3>No exercises yet</h3>
+          <p>Click <strong>New Exercises</strong> to get beginner-friendly hands-on tasks.</p>
+          <button class="btn btn-primary" onclick="generateExercises()">
+            <i class="fa fa-magic"></i> Generate Exercises
+          </button>
+        </div>
+      </div>
+    </div>
+    <!-- ══ end tab panels ══════════════════════════════════════════════════ -->
+
+  </div><!-- end course-content -->
+</div><!-- end course-layout -->
+
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/quiz.js') }}"></script>
+<script src="{{ url_for('static', filename='js/visual.js') }}"></script>
+<script src="{{ url_for('static', filename='js/course.js') }}"></script>
+<script>
+  // Boot the course page
+  document.addEventListener("DOMContentLoaded", () => {
+    initCoursePage();
+  });
+</script>
+{% endblock %}

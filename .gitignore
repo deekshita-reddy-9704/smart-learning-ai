@@ -1,0 +1,26 @@
+# Virtual environment — never upload this
+venv/
+
+# Secret keys — never upload this
+.env
+
+# Database — regenerates automatically
+learning.db
+
+# Uploaded files
+uploads/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/

@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{% block title %}Smart AI Micro-Learning{% endblock %}</title>
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+
+  <!-- Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+
+  <!-- Main stylesheet -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}" />
+
+  {% block head %}{% endblock %}
+</head>
+<body>
+
+<!-- ── Global loading overlay ─────────────────────────────────────────────── -->
+<div id="global-loader" class="global-loader hidden">
+  <div class="loader-card">
+    <div class="loader-spinner"></div>
+    <p class="loader-text" id="loader-text">Generating with AI…</p>
+  </div>
+</div>
+
+<!-- ── Toast notification ─────────────────────────────────────────────────── -->
+<div id="toast" class="toast hidden">
+  <span id="toast-icon"></span>
+  <span id="toast-msg"></span>
+</div>
+
+<!-- ── Navigation ─────────────────────────────────────────────────────────── -->
+<nav class="navbar">
+  <div class="nav-inner">
+    <a href="/" class="nav-brand">
+      <span class="brand-icon">⚡</span>
+      <span class="brand-text">MicroLearn <span class="brand-ai">AI</span></span>
+    </a>
+
+    <div class="nav-links">
+      <a href="/" class="nav-link {% if request.path == '/' %}active{% endif %}">
+        <i class="fa fa-house"></i> Home
+      </a>
+      <a href="#" class="nav-link" onclick="showUploadModal(); return false;">
+        <i class="fa fa-upload"></i> Upload
+      </a>
+    </div>
+  </div>
+</nav>
+
+<!-- ── Page content ────────────────────────────────────────────────────────── -->
+<main class="main-content">
+  {% block content %}{% endblock %}
+</main>
+
+<!-- ── Footer ─────────────────────────────────────────────────────────────── -->
+<footer class="footer">
+  <p>Smart AI Micro-Learning Assistant &nbsp;·&nbsp; Built by Deekshita Reddy D T</p>
+</footer>
+
+<!-- ── Upload Modal (global — available on every page) ────────────────────── -->
+<div id="upload-modal" class="modal-overlay hidden">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h2 class="modal-title"><i class="fa fa-upload"></i> Upload Syllabus / Portion</h2>
+      <button class="modal-close" onclick="hideUploadModal()">&times;</button>
+    </div>
+
+    <div class="modal-body">
+      <p class="modal-subtitle">Course not found? Upload a PDF or text file and AI will generate a full course for you.</p>
+
+      <!-- Drop zone -->
+      <div id="drop-zone" class="drop-zone">
+        <div class="drop-zone-inner" id="drop-zone-inner">
+          <i class="fa fa-cloud-upload-alt drop-icon"></i>
+          <p class="drop-text">Drag &amp; drop your file here</p>
+          <p class="drop-sub">PDF, TXT, or MD &nbsp;·&nbsp; Max 16 MB</p>
+          <label class="btn btn-outline btn-sm upload-label">
+            Browse File
+            <input type="file" id="upload-file-input" accept=".pdf,.txt,.md" hidden />
+          </label>
+        </div>
+        <div id="file-chosen" class="file-chosen hidden">
+          <i class="fa fa-file-alt file-icon"></i>
+          <span id="chosen-name"></span>
+          <button class="btn-icon" onclick="clearFile()" title="Remove"><i class="fa fa-times"></i></button>
+        </div>
+      </div>
+
+      <!-- Course metadata -->
+      <div class="form-grid">
+        <div class="form-group">
+          <label class="form-label" for="upload-course-name">Course Name <span class="optional">(optional)</span></label>
+          <input type="text" id="upload-course-name" class="form-input"
+                 placeholder="e.g. Machine Learning Basics" />
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="upload-category">Category</label>
+          <input type="text" id="upload-category" class="form-input"
+                 placeholder="e.g. Data Science" />
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="upload-difficulty">Difficulty</label>
+          <select id="upload-difficulty" class="form-input">
+            <option value="beginner">Beginner</option>
+            <option value="intermediate">Intermediate</option>
+            <option value="advanced">Advanced</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Preview -->
+      <div id="text-preview-wrap" class="hidden">
+        <p class="preview-label"><i class="fa fa-eye"></i> Extracted text preview</p>
+        <pre id="text-preview" class="preview-box"></pre>
+      </div>
+
+      <!-- Error -->
+      <div id="upload-error" class="alert alert-danger hidden"></div>
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="hideUploadModal()">Cancel</button>
+      <button class="btn btn-primary" id="upload-btn" onclick="handleUpload()" disabled>
+        <i class="fa fa-magic"></i> Upload &amp; Generate Course
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Core JS ─────────────────────────────────────────────────────────────── -->
+<script src="{{ url_for('static', filename='js/api.js') }}"></script>
+<script src="{{ url_for('static', filename='js/main.js') }}"></script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

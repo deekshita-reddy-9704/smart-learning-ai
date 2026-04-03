@@ -1,0 +1,145 @@
+{% extends "base.html" %}
+{% block title %}MicroLearn AI — Home{% endblock %}
+
+{% block content %}
+
+<!-- ══ Hero ═══════════════════════════════════════════════════════════════════ -->
+<section class="hero">
+  <div class="hero-inner">
+    <div class="hero-badge"><span class="pulse-dot"></span> AI-Powered Learning</div>
+    <h1 class="hero-title">
+      Learn Smarter,<br />
+      <span class="gradient-text">Not Harder</span>
+    </h1>
+    <p class="hero-subtitle">
+      Micro-learning modules, AI flashcards, adaptive quizzes, and audio lessons —
+      all generated dynamically for any topic.
+    </p>
+
+    <!-- ── Search bar ──────────────────────────────────────────────────────── -->
+    <div class="search-bar-wrap">
+      <div class="search-bar">
+        <i class="fa fa-search search-icon"></i>
+        <input
+          type="text"
+          id="search-input"
+          class="search-input"
+          placeholder="Search courses… e.g. Python, Machine Learning, SQL"
+          autocomplete="off"
+        />
+        <button class="btn btn-primary search-btn" onclick="triggerSearch()">
+          Search
+        </button>
+      </div>
+
+      <!-- Upload CTA below search -->
+      <p class="upload-cta">
+        Course not found?
+        <button class="link-btn" onclick="showUploadModal()">
+          <i class="fa fa-upload"></i> Upload your syllabus / portion (PDF or Text)
+        </button>
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- ══ Filter chips ═══════════════════════════════════════════════════════════ -->
+<section class="filter-section container">
+  <div class="filter-row">
+    <!-- Category chips (populated by JS) -->
+    <div class="chip-group" id="category-chips">
+      <button class="chip active" data-category="">All</button>
+    </div>
+
+    <!-- Difficulty filter -->
+    <div class="chip-group">
+      <button class="chip diff-chip active" data-difficulty="">Any Level</button>
+      <button class="chip diff-chip" data-difficulty="beginner">Beginner</button>
+      <button class="chip diff-chip" data-difficulty="intermediate">Intermediate</button>
+      <button class="chip diff-chip" data-difficulty="advanced">Advanced</button>
+    </div>
+  </div>
+
+  <!-- Results count -->
+  <p class="results-count hidden" id="results-count"></p>
+</section>
+
+<!-- ══ Course grid ════════════════════════════════════════════════════════════ -->
+<section class="container courses-section">
+  <div class="section-header">
+    <h2 class="section-title" id="section-title">Available Courses</h2>
+  </div>
+
+  <!-- Skeleton loaders shown while fetching -->
+  <div class="course-grid" id="course-grid">
+    <div class="skeleton-card"></div>
+    <div class="skeleton-card"></div>
+    <div class="skeleton-card"></div>
+    <div class="skeleton-card"></div>
+    <div class="skeleton-card"></div>
+    <div class="skeleton-card"></div>
+  </div>
+
+  <!-- Empty state -->
+  <div id="empty-state" class="empty-state hidden">
+    <div class="empty-icon">🔍</div>
+    <h3>No courses found</h3>
+    <p>Try a different search term, or upload your own syllabus to create a custom course.</p>
+    <button class="btn btn-primary" onclick="showUploadModal()">
+      <i class="fa fa-upload"></i> Upload Syllabus
+    </button>
+  </div>
+</section>
+
+<!-- ══ How it works ═══════════════════════════════════════════════════════════ -->
+<section class="how-section container">
+  <h2 class="section-title center-text">How It Works</h2>
+  <div class="steps-grid">
+
+    <div class="step-card">
+      <div class="step-icon step-icon-purple">
+        <i class="fa fa-search"></i>
+      </div>
+      <h3 class="step-title">1. Find or Upload</h3>
+      <p class="step-desc">Search from curated courses or upload your own PDF / text syllabus.</p>
+    </div>
+
+    <div class="step-card">
+      <div class="step-icon step-icon-teal">
+        <i class="fa fa-brain"></i>
+      </div>
+      <h3 class="step-title">2. AI Generates Content</h3>
+      <p class="step-desc">AI breaks your topic into modules, notes, flashcards, and quizzes in seconds.</p>
+    </div>
+
+    <div class="step-card">
+      <div class="step-icon step-icon-blue">
+        <i class="fa fa-graduation-cap"></i>
+      </div>
+      <h3 class="step-title">3. Learn Your Way</h3>
+      <p class="step-desc">Read, listen, watch, write, or quiz yourself — six learning modes in one hub.</p>
+    </div>
+
+    <div class="step-card">
+      <div class="step-icon step-icon-amber">
+        <i class="fa fa-chart-line"></i>
+      </div>
+      <h3 class="step-title">4. Get Instant Feedback</h3>
+      <p class="step-desc">AI evaluates your quiz answers and explains every mistake in plain language.</p>
+    </div>
+
+  </div>
+</section>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+  // Initialise home page on load
+  document.addEventListener("DOMContentLoaded", () => {
+    loadCategories();
+    loadCourses();
+    setupSearchListeners();
+  });
+</script>
+{% endblock %}

@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: smart-learning-ai
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:application --bind 0.0.0.0:$PORT --workers 2 --timeout 120
+    envVars:
+      - key: AIPIPE_API_KEY
+        sync: false
+      - key: SECRET_KEY
+        sync: false
+      - key: DEBUG
+        value: false

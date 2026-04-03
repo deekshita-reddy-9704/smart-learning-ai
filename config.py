@@ -7,7 +7,7 @@ BASE_DIR = Path(__file__).parent
 class Config:
     # Flask
     SECRET_KEY = os.environ.get("SECRET_KEY", "dev-secret-key-change-in-production")
-    DEBUG = os.environ.get("DEBUG", "true").lower() == "true"
+    DEBUG = os.environ.get("DEBUG", "false").lower() == "true"
 
     # Database
     DATABASE_PATH = os.path.join(BASE_DIR, "learning.db")
